@@ -1,0 +1,604 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "📊 Business Overview",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 50 }
+            ]
+          },
+          "mappings": []
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "title": "🛒 Total Orders Placed",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(orders_placed_total{status=\"success\"})",
+          "legendFormat": "Orders"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "title": "❌ Failed Orders",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(orders_placed_total{status=\"failed\"}) or vector(0)",
+          "legendFormat": "Failed"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null },
+              { "color": "purple", "value": 5 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "title": "🏪 Multi-Warehouse Orders",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(multi_warehouse_orders_total) or vector(0)",
+          "legendFormat": "Multi-WH"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "title": "✅ Orders Fulfilled",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(fulfillment_orders_processed_total{status=\"completed\"}) or vector(0)",
+          "legendFormat": "Fulfilled"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "📈 Order Flow",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "gradientMode": "scheme",
+            "showPoints": "auto",
+            "pointSize": 5
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "id": 5,
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] }
+      },
+      "title": "📦 Orders Per Warehouse (rate/min)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(orders_placed_total{status=\"success\"}[5m])) by (warehouse_id) * 60",
+          "legendFormat": "{{warehouse_id}}"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "id": 6,
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] }
+      },
+      "title": "🥬 Top Items Ordered (quantity)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "topk(10, sum(order_items_quantity_total) by (item_id))",
+          "legendFormat": "{{item_id}}"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 102,
+      "title": "🏪 Warehouse Inventory",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-GrYlRd", "fixedColor": "green" },
+          "custom": { "fillOpacity": 80 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "orange", "value": 20 },
+              { "color": "yellow", "value": 50 },
+              { "color": "green", "value": 100 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 15 },
+      "id": 7,
+      "options": {
+        "calculate": false,
+        "cellGap": 2,
+        "color": {
+          "mode": "scheme",
+          "scheme": "RdYlGn"
+        },
+        "yAxis": { "axisLabel": "Items" },
+        "tooltip": { "show": true }
+      },
+      "title": "📊 Inventory Heatmap — Stock Levels (warehouse × item)",
+      "description": "Green = high stock, Red = low/out of stock. Hover for details.",
+      "type": "table",
+      "transformations": [],
+      "targets": [
+        {
+          "expr": "inventory_stock_level",
+          "legendFormat": "{{warehouse_id}} / {{item_id}}",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 },
+      "id": 103,
+      "title": "⚠️ Low Stock Alerts",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "orange", "value": 10 },
+              { "color": "green", "value": 20 }
+            ]
+          },
+          "custom": {
+            "displayMode": "color-background-solid"
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 26 },
+      "id": 8,
+      "title": "🚨 Items Below Threshold (< 20 units)",
+      "description": "Items that need restocking urgently. Red = critical, Orange = warning.",
+      "type": "table",
+      "targets": [
+        {
+          "expr": "inventory_stock_level < 20",
+          "legendFormat": "{{warehouse_id}} / {{item_id}}",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 },
+      "id": 104,
+      "title": "⚡ Fulfillment Performance",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 35 },
+      "id": 9,
+      "title": "⏱️ Order Processing Time",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(fulfillment_processing_seconds_bucket[5m]))",
+          "legendFormat": "p50 (median)"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(fulfillment_processing_seconds_bucket[5m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(fulfillment_processing_seconds_bucket[5m]))",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 35 },
+      "id": 10,
+      "title": "📉 Stock Deductions by Item (rate/min)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "topk(8, sum(rate(fulfillment_stock_deduction_quantity_total[5m])) by (item_id) * 60)",
+          "legendFormat": "{{item_id}}"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 43 },
+      "id": 105,
+      "title": "🌐 API Performance",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 44 },
+      "id": 11,
+      "title": "🔗 API Response Time (p95)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"availability-service\"}[5m])) by (le, handler))",
+          "legendFormat": "avail: {{handler}}"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"order-service\"}[5m])) by (le, handler))",
+          "legendFormat": "order: {{handler}}"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 20 }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 44 },
+      "id": 12,
+      "title": "📊 Request Rate by Service (req/min)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job=\"availability-service\"}[5m])) * 60",
+          "legendFormat": "Availability Service"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{job=\"order-service\"}[5m])) * 60",
+          "legendFormat": "Order Service"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 52 },
+      "id": 106,
+      "title": "🔮 Demand Prediction Signals",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 30, "gradientMode": "scheme" }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 53 },
+      "id": 13,
+      "title": "🔥 Fastest Selling Items (deductions/min)",
+      "description": "Items being deducted fastest across all warehouses — these are high demand",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "topk(5, sum(rate(fulfillment_stock_deduction_quantity_total[10m])) by (item_id) * 60)",
+          "legendFormat": "{{item_id}}"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "orange", "value": 50 },
+              { "color": "green", "value": 100 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 53 },
+      "id": 14,
+      "title": "📉 Items Approaching Stockout",
+      "description": "Current stock levels for items that are selling fast. Red = restock NOW.",
+      "type": "bargauge",
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "expr": "bottomk(10, sum(inventory_stock_level) by (item_id))",
+          "legendFormat": "{{item_id}}"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 61 },
+      "id": 107,
+      "title": "🏗️ Infrastructure Health",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 62 },
+      "id": 15,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "title": "🟢 Service Health",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "up{job=\"availability-service\"}",
+          "legendFormat": "Availability"
+        },
+        {
+          "expr": "up{job=\"order-service\"}",
+          "legendFormat": "Orders"
+        },
+        {
+          "expr": "up{job=\"fulfillment-worker\"}",
+          "legendFormat": "Fulfillment"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 62 },
+      "id": 16,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "title": "🔧 Database Health",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "up{job=\"redis\"}",
+          "legendFormat": "Redis"
+        },
+        {
+          "expr": "up{job=\"postgres\"}",
+          "legendFormat": "PostgreSQL"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 15 }
+        }
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 62 },
+      "id": 17,
+      "title": "💾 Redis Memory Usage",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "redis_memory_used_bytes",
+          "legendFormat": "Used Memory"
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["rapid-delivery", "business", "operations"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "Prometheus", "value": "Prometheus" },
+        "hide": 2,
+        "includeAll": false,
+        "name": "DS_PROMETHEUS",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "Rapid Delivery Service — Operations Dashboard",
+  "uid": "rapid-delivery-main",
+  "version": 1
+}

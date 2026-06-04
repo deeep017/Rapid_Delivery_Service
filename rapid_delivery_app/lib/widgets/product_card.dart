@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
 
-/// Enhanced product card with discount badge, rating, and quantity controls
+/// Enhanced product card with delivery time badge, discount badge, and quantity controls
 class ProductCard extends StatelessWidget {
   final Product product;
   final int quantity;
@@ -66,7 +66,7 @@ class ProductCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Discount badge
+                  // Discount badge (top-left)
                   if (product.discountPercent > 0)
                     Positioned(
                       top: 8,
@@ -90,7 +90,7 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                  // Best seller badge
+                  // Best seller badge (top-right)
                   if (product.isBestSeller)
                     Positioned(
                       top: 8,
@@ -110,6 +110,38 @@ class ProductCard extends StatelessWidget {
                             color: Colors.white,
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  // Delivery ETA badge (bottom-left) — shows delivery time tier
+                  if (!isOutOfStock && product.bestEtaMinutes > 0)
+                    Positioned(
+                      bottom: 6,
+                      left: 6,
+                      child: _buildEtaBadge(),
+                    ),
+                  // Warehouse count badge (bottom-right)
+                  if (!isOutOfStock && product.warehouseCount > 1)
+                    Positioned(
+                      bottom: 6,
+                      right: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: Text(
+                          '${product.warehouseCount} stores',
+                          style: TextStyle(
+                            color: Colors.blue.shade700,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -205,6 +237,44 @@ class ProductCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Delivery time badge — color-coded by speed
+  Widget _buildEtaBadge() {
+    Color bgColor;
+    Color textColor;
+    Color borderColor;
+
+    if (product.bestEtaMinutes <= 15) {
+      bgColor = Colors.green.shade50;
+      textColor = Colors.green.shade700;
+      borderColor = Colors.green.shade200;
+    } else if (product.bestEtaMinutes <= 30) {
+      bgColor = Colors.amber.shade50;
+      textColor = Colors.amber.shade800;
+      borderColor = Colors.amber.shade200;
+    } else {
+      bgColor = Colors.orange.shade50;
+      textColor = Colors.orange.shade800;
+      borderColor = Colors.orange.shade200;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: borderColor),
+      ),
+      child: Text(
+        product.etaLabel,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

@@ -35,11 +35,12 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   final Map<String, int> _cart = {};
   final Map<String, int> _stockLevels = {};
 
+  /// Multi-warehouse state
+  List<WarehouseInfo> _nearbyWarehouses = [];
+
   String _warehouseInfo = "Select a location to start";
-  String _activeWarehouseId = "";
   bool _isLoading = true;
-  bool _deliveryAvailable =
-      false; // Track if delivery is available at current location
+  bool _deliveryAvailable = false;
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -50,17 +51,11 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   }
 
   Future<void> _initApp() async {
-    // Load categories and banners
+    // Load categories and banners (static UI data)
     _categories = DataRepository.getCategories();
     _banners = DataRepository.getBanners();
 
-    // Load product catalog
-    var catalog = await DataRepository.fetchCatalog();
-    setState(() {
-      _products = catalog;
-      _filteredProducts = catalog;
-      _isLoading = false;
-    });
+    setState(() => _isLoading = false);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showLocationSheet();
@@ -71,7 +66,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     setState(() {
       _selectedCategoryId = categoryId;
 
-      // Start with products that have stock at current warehouse
+      // Start with products that have stock
       List<Product> baseProducts =
           _deliveryAvailable
               ? _products.where((p) => (_stockLevels[p.id] ?? 0) > 0).toList()
@@ -92,7 +87,6 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
 
   void _runProductSearch(String query) {
     setState(() {
-      // Start with products that have stock at current warehouse
       List<Product> inStock =
           _deliveryAvailable
               ? _products.where((p) => (_stockLevels[p.id] ?? 0) > 0).toList()
@@ -118,18 +112,59 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     });
   }
 
+  // =================================================================
+  // CORE CHANGE: Aggregated multi-warehouse stock refresh
+  // =================================================================
   Future<void> _refreshStock() async {
     if (_currentLocation == null) return;
 
     setState(() {
       _isLoading = true;
-      _warehouseInfo = "Checking availability...";
+      _warehouseInfo = "Finding nearby warehouses...";
       _deliveryAvailable = false;
       _stockLevels.clear();
-      _cart.clear(); // Clear cart when location changes
+      _cart.clear();
+      _nearbyWarehouses.clear();
     });
 
-    // Probe to find the nearest warehouse
+    // ---- Try aggregated endpoint first (multi-warehouse) ----
+    final aggData = await ApiService.getAggregatedAvailability(
+      _currentLocation!.lat,
+      _currentLocation!.lon,
+    );
+
+    final aggWarehouses = ApiService.parseWarehouseInfo(aggData);
+    final aggProducts = ApiService.parseAggregatedProducts(aggData);
+
+    if (aggWarehouses.isNotEmpty && aggProducts.isNotEmpty) {
+      // SUCCESS — aggregated data available
+      _nearbyWarehouses = aggWarehouses;
+
+      // Build stock levels from aggregated total stock
+      _stockLevels.clear();
+      for (var p in aggProducts) {
+        _stockLevels[p.id] = p.totalStock;
+      }
+
+      final closestWh = aggWarehouses.first;
+      setState(() {
+        _products = aggProducts;
+        _filteredProducts = List.from(aggProducts);
+        _deliveryAvailable = true;
+        _warehouseInfo =
+            "⚡ ${aggWarehouses.length} warehouses nearby • "
+            "Closest: ${closestWh.city} (${closestWh.distanceKm.toStringAsFixed(1)} km)";
+      });
+    } else {
+      // ---- Fallback: single-warehouse probe (backward compatible) ----
+      await _refreshStockSingleWarehouse();
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  /// Fallback for when the aggregated endpoint isn't deployed yet
+  Future<void> _refreshStockSingleWarehouse() async {
     var probe = await ApiService.checkStock(
       "apple",
       _currentLocation!.lat,
@@ -137,46 +172,72 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     );
 
     if (probe['available'] == true || probe['warehouse_id'] != null) {
-      double dist = probe['distance_km'] ?? 0;
+      double dist = (probe['distance_km'] ?? 0).toDouble();
       final warehouseId = probe['warehouse_id'];
+      final eta = ApiService.calculateEta(dist);
+
+      // Create a single WarehouseInfo for backward compatibility
+      _nearbyWarehouses = [
+        WarehouseInfo(
+          id: warehouseId,
+          city: warehouseId,
+          distanceKm: dist,
+          etaMinutes: eta,
+        ),
+      ];
 
       setState(() {
-        _activeWarehouseId = warehouseId;
         _deliveryAvailable = true;
         _warehouseInfo =
-            "⚡ Delivery from $_activeWarehouseId (${dist.toStringAsFixed(1)} km)";
+            "⚡ Delivery from $warehouseId (${dist.toStringAsFixed(1)} km)";
       });
 
-      // Fetch products WITH STOCK directly from the warehouse
-      // This gets real-time inventory from Redis
+      // Fetch products from this single warehouse
       final warehouseProducts = await ApiService.getWarehouseProducts(
         warehouseId,
       );
 
       if (warehouseProducts.isNotEmpty) {
-        // Use warehouse products as the catalog
-        _products = warehouseProducts;
         _stockLevels.clear();
 
-        // Build stock levels map from the products
+        // Build products with single-source info
+        List<Product> enrichedProducts = [];
         for (var p in warehouseProducts) {
-          // The API returns products with stock > 0,
-          // but we need to fetch actual stock for cart limits
           final result = await ApiService.checkStock(
             p.id,
             _currentLocation!.lat,
             _currentLocation!.lon,
           );
-          if (result['available'] == true) {
-            _stockLevels[p.id] = result['quantity'] ?? 0;
-          }
+          final qty = result['available'] == true ? (result['quantity'] ?? 0) : 0;
+          _stockLevels[p.id] = qty;
+
+          // Enrich with source info so ProductCard badges work
+          enrichedProducts.add(Product(
+            id: p.id,
+            name: p.name,
+            unit: p.unit,
+            imageEmoji: p.imageEmoji,
+            price: p.price,
+            categoryId: p.categoryId,
+            totalStock: qty,
+            bestWarehouseId: warehouseId,
+            bestEtaMinutes: eta,
+            sources: [
+              WarehouseSource(
+                warehouseId: warehouseId,
+                stock: qty,
+                distanceKm: dist,
+                etaMinutes: eta,
+              ),
+            ],
+          ));
         }
 
         setState(() {
-          _filteredProducts = List.from(_products);
+          _products = enrichedProducts;
+          _filteredProducts = List.from(enrichedProducts);
         });
       } else {
-        // Fallback: No products at this warehouse
         setState(() {
           _products = [];
           _filteredProducts = [];
@@ -185,15 +246,13 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
       }
     } else {
       setState(() {
-        _activeWarehouseId = "";
         _deliveryAvailable = false;
         _warehouseInfo = "🚫 No delivery available in your area";
-        _filteredProducts = []; // Hide all products when no delivery
+        _filteredProducts = [];
         _stockLevels.clear();
+        _nearbyWarehouses.clear();
       });
     }
-
-    setState(() => _isLoading = false);
   }
 
   void _updateCart(String itemId, int change) {
@@ -239,8 +298,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   }
 
   void _openCart() {
-    // Block cart access when no delivery is available
-    if (!_deliveryAvailable || _activeWarehouseId.isEmpty) {
+    if (!_deliveryAvailable || _nearbyWarehouses.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -266,7 +324,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
             (ctx) => CartScreen(
               cart: _cart,
               products: _products,
-              warehouseId: _activeWarehouseId,
+              nearbyWarehouses: _nearbyWarehouses,
               userEmail: widget.userEmail,
               userName: widget.userName,
               onOrderPlaced: () {
@@ -287,6 +345,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     );
   }
 
+  // ignore: unused_element
   Future<void> _handleLogout() async {
     await AuthService.signOut();
     if (mounted) {
@@ -302,7 +361,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   double get _totalCartAmount {
     double total = 0;
     for (var entry in _cart.entries) {
-      final product = _products.firstWhere((p) => p.id == entry.key);
+      final product = _products.firstWhere(
+        (p) => p.id == entry.key,
+        orElse: () => Product(id: '', name: '', unit: '', imageEmoji: '', price: 0),
+      );
       total += product.price * entry.value;
     }
     return total;
@@ -352,7 +414,6 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                   ],
                 ),
       ),
-      // Top action buttons
       appBar: _buildAppBar(),
     );
   }
@@ -376,6 +437,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
             margin: const EdgeInsets.only(left: 6),
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
+              // ignore: deprecated_member_use
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(4),
             ),
@@ -480,33 +542,66 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color:
-              _activeWarehouseId.isNotEmpty
+              _deliveryAvailable
                   ? const Color(0xFFE8F5E9)
                   : const Color(0xFFFFF3E0),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              _activeWarehouseId.isNotEmpty ? Icons.check_circle : Icons.info,
-              color:
-                  _activeWarehouseId.isNotEmpty ? Colors.green : Colors.orange,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                _warehouseInfo,
-                style: TextStyle(
-                  color:
-                      _activeWarehouseId.isNotEmpty
-                          ? Colors.green[800]
-                          : Colors.orange[800],
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
+            Row(
+              children: [
+                Icon(
+                  _deliveryAvailable ? Icons.check_circle : Icons.info,
+                  color: _deliveryAvailable ? Colors.green : Colors.orange,
+                  size: 20,
                 ),
-              ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _warehouseInfo,
+                    style: TextStyle(
+                      color:
+                          _deliveryAvailable
+                              ? Colors.green[800]
+                              : Colors.orange[800],
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
             ),
+            // Show warehouse chips when multiple are available
+            if (_deliveryAvailable && _nearbyWarehouses.length > 1) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: _nearbyWarehouses.map((wh) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: Text(
+                      '${wh.city} • ${wh.etaLabel}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.green.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
           ],
         ),
       ),

@@ -57,6 +57,7 @@ class _WarehouseOrdersScreenState extends State<WarehouseOrdersScreen> {
     return _orders.where((o) => o['status'] == _filterStatus).toList();
   }
 
+  // ignore: unused_element
   Color _getStatusColor(String status) {
     switch (status.toUpperCase()) {
       case 'PENDING':

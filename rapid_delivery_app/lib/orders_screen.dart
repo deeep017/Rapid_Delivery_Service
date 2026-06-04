@@ -73,6 +73,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     
     // Calculate Total manually since DB only stores items
     // (In a real app, DB should store total_amount too)
+    // ignore: unused_local_variable
     double total = 0;
     // We don't have price in history, so we estimate or hide it. 
     // For this demo, let's just count items.

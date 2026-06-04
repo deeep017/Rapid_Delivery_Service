@@ -5,34 +5,26 @@ echo "=========================================="
 echo "K3S WORKER NODE - Joins Master Cluster"
 echo "=========================================="
 
-############################
 # 0. Swap
-############################
 fallocate -l 2G /swapfile
 chmod 600 /swapfile
 mkswap /swapfile
 swapon /swapfile
 echo '/swapfile none swap sw 0 0' >> /etc/fstab
 
-############################
 # 1. Install dependencies
-############################
 apt-get update
 apt-get install -y curl unzip docker.io
 
 systemctl enable docker
 systemctl start docker
 
-############################
 # 2. Install AWS CLI
-############################
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
 ./aws/install
 
-############################
 # 3. Wait for Master and get token
-############################
 echo "Waiting for K3s master to save token to SSM..."
 
 MAX_RETRIES=30
@@ -68,9 +60,7 @@ K3S_MASTER_IP=$(aws ssm get-parameter \
 
 echo "Got K3s token and master IP: $K3S_MASTER_IP"
 
-############################
 # 4. Install K3s AGENT (Worker Node)
-############################
 mkdir -p /etc/rancher/k3s
 cat <<EOF > /etc/rancher/k3s/config.yaml
 ---
@@ -88,9 +78,7 @@ curl -sfL https://get.k3s.io | K3S_URL="https://$K3S_MASTER_IP:6443" K3S_TOKEN="
 echo "Waiting for agent to connect to master..."
 sleep 30
 
-############################
 # 5. Login to ECR (for image pulls)
-############################
 aws ecr get-login-password --region ${AWS_REGION} \
  | docker login --username AWS \
  --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com

@@ -34,28 +34,23 @@ class ApiService {
     return "http://10.0.2.2:8001"; // Android emulator
   }
 
-  // 1. Backend: Check Stock
+  // =====================================================
+  // 1. Check Stock for a single item (existing endpoint)
+  // =====================================================
   static Future<Map<String, dynamic>> checkStock(
     String itemId,
     double lat,
     double lon,
   ) async {
-    // Note: Nginx rewrites /availability/XXX -> /XXX for the backend
-    // So we call /availability/availability which becomes /availability
     final url = Uri.parse(
       "$availabilityBaseUrl/availability"
       "?item_id=$itemId&lat=$lat&lon=$lon",
     );
 
-    print("DEBUG: Calling URL: $url");
-
     try {
       final response = await http
-          .get(url) // Removed Content-Type header to avoid preflight issues
+          .get(url)
           .timeout(const Duration(seconds: 15));
-
-      print("DEBUG: Response status: ${response.statusCode}");
-      print("DEBUG: Response body: ${response.body}");
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -64,17 +59,80 @@ class ApiService {
       }
     } catch (e) {
       print("Backend Error: $e");
-      print("DEBUG: URL was: $url");
       return {"available": false, "error": e.toString()};
     }
   }
 
-  // 2. Backend: Place Order
+  // =====================================================
+  // 2. AGGREGATED AVAILABILITY — Multi-Warehouse
+  //    Returns ALL products from up to 3 nearest warehouses
+  // =====================================================
+  static Future<Map<String, dynamic>> getAggregatedAvailability(
+    double lat,
+    double lon, {
+    double maxDistance = 30.0,
+    int maxWarehouses = 3,
+  }) async {
+    final url = Uri.parse(
+      "$availabilityBaseUrl/availability/aggregated"
+      "?lat=$lat&lon=$lon&max_distance=$maxDistance&max_warehouses=$maxWarehouses",
+    );
+
+    try {
+      final response = await http
+          .get(url)
+          .timeout(const Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+    } catch (e) {
+      print("Aggregated Availability Error: $e");
+    }
+
+    return {"warehouses": [], "products": []};
+  }
+
+  /// Parse aggregated response into Product list with source info
+  static List<Product> parseAggregatedProducts(Map<String, dynamic> data) {
+    final List<dynamic> rawProducts = data['products'] ?? [];
+
+    return rawProducts.map((p) {
+      final List<dynamic> rawSources = p['sources'] ?? [];
+      final sources = rawSources
+          .map((s) => WarehouseSource.fromJson(s as Map<String, dynamic>))
+          .toList();
+
+      return Product(
+        id: p['id'] ?? '',
+        name: p['name'] ?? '',
+        unit: p['unit'] ?? '1 unit',
+        imageEmoji: p['imageEmoji'] ?? '📦',
+        price: (p['price'] ?? 100).toDouble(),
+        categoryId: p['categoryId'] ?? 'grocery',
+        totalStock: p['total_stock'] ?? 0,
+        bestWarehouseId: p['best_warehouse'] ?? '',
+        bestEtaMinutes: p['best_eta'] ?? 10,
+        sources: sources,
+      );
+    }).toList();
+  }
+
+  /// Parse warehouse info from aggregated response
+  static List<WarehouseInfo> parseWarehouseInfo(Map<String, dynamic> data) {
+    final List<dynamic> rawWarehouses = data['warehouses'] ?? [];
+    return rawWarehouses
+        .map((w) => WarehouseInfo.fromJson(w as Map<String, dynamic>))
+        .toList();
+  }
+
+  // =====================================================
+  // 3. Place Order (supports multi-warehouse)
+  // =====================================================
   static Future<Map<String, dynamic>> placeOrder(
     String userId,
     List<Map<String, dynamic>> items,
   ) async {
-    // Note: Nginx rewrites /order/XXX -> /XXX for the backend
     final url = Uri.parse("$orderBaseUrl/orders");
 
     try {
@@ -94,7 +152,9 @@ class ApiService {
     }
   }
 
-  // 3. OpenStreetMap: Search Locations
+  // =====================================================
+  // 4. OpenStreetMap: Search Locations
+  // =====================================================
   static Future<List<dynamic>> searchLocations(String query) async {
     if (query.length < 3) return [];
 
@@ -119,7 +179,9 @@ class ApiService {
     return [];
   }
 
-  // 4. Fetch Orders
+  // =====================================================
+  // 5. Fetch Orders
+  // =====================================================
   static Future<List<dynamic>> fetchOrders(String userId) async {
     final url = Uri.parse("$orderBaseUrl/orders/$userId");
 
@@ -136,7 +198,9 @@ class ApiService {
     return [];
   }
 
-  // 5. Get Order History (for Buyer flow)
+  // =====================================================
+  // 6. Get Order History (for Buyer flow)
+  // =====================================================
   static Future<List<Map<String, dynamic>>> getOrderHistory(
     String userId,
   ) async {
@@ -156,7 +220,11 @@ class ApiService {
     return [];
   }
 
-  // 6. Get Warehouses (for Manager flow)
+  // =====================================================
+  // 7. Get Warehouses (for Manager flow)
+  //    FIX: Backend returns {"warehouses": [...], "count": N}
+  //         not a raw List
+  // =====================================================
   static Future<List<Map<String, dynamic>>> getWarehouses() async {
     final url = Uri.parse("$availabilityBaseUrl/warehouses");
 
@@ -164,8 +232,16 @@ class ApiService {
       final response = await http.get(url).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((e) => e as Map<String, dynamic>).toList();
+        final data = json.decode(response.body);
+        // Backend returns {"warehouses": [...]} — extract the list
+        if (data is Map<String, dynamic>) {
+          final List<dynamic> warehouses = data['warehouses'] ?? [];
+          return warehouses.map((e) => e as Map<String, dynamic>).toList();
+        }
+        // Fallback: if it's already a list (shouldn't happen, but safe)
+        if (data is List) {
+          return data.map((e) => e as Map<String, dynamic>).toList();
+        }
       }
     } catch (e) {
       print("Get Warehouses Error: $e");
@@ -174,7 +250,11 @@ class ApiService {
     return [];
   }
 
-  // 7. Get Warehouse Inventory (for Manager flow)
+  // =====================================================
+  // 8. Get Warehouse Inventory (for Manager flow)
+  //    FIX: Backend returns {"inventory": [...]}
+  //         not a raw List
+  // =====================================================
   static Future<List<Map<String, dynamic>>> getWarehouseInventory(
     String warehouseId,
   ) async {
@@ -184,8 +264,15 @@ class ApiService {
       final response = await http.get(url).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((e) => e as Map<String, dynamic>).toList();
+        final data = json.decode(response.body);
+        // Backend returns {"inventory": [...]} — extract the list
+        if (data is Map<String, dynamic>) {
+          final List<dynamic> inventory = data['inventory'] ?? [];
+          return inventory.map((e) => e as Map<String, dynamic>).toList();
+        }
+        if (data is List) {
+          return data.map((e) => e as Map<String, dynamic>).toList();
+        }
       }
     } catch (e) {
       print("Get Inventory Error: $e");
@@ -194,7 +281,9 @@ class ApiService {
     return [];
   }
 
-  // 7b. Get Warehouse Products (for Buyer flow - fetches products with stock > 0)
+  // =====================================================
+  // 9. Get Warehouse Products (for Buyer flow — single warehouse)
+  // =====================================================
   static Future<List<Product>> getWarehouseProducts(String warehouseId) async {
     final url = Uri.parse("$availabilityBaseUrl/products/$warehouseId");
 
@@ -225,7 +314,9 @@ class ApiService {
     return [];
   }
 
-  // 8. Update Stock (for Manager flow)
+  // =====================================================
+  // 10. Update Stock (for Manager flow)
+  // =====================================================
   static Future<Map<String, dynamic>> updateStock({
     required String warehouseId,
     required String productId,
@@ -255,7 +346,9 @@ class ApiService {
     }
   }
 
-  // 9. Subscribe to SNS Notifications
+  // =====================================================
+  // 11. Subscribe to SNS Notifications
+  // =====================================================
   static Future<Map<String, dynamic>> subscribeToNotifications({
     required String warehouseId,
     required String email,
@@ -282,7 +375,9 @@ class ApiService {
     }
   }
 
-  // 10. Get Warehouse Orders (for Seller/Manager to see orders for their warehouse)
+  // =====================================================
+  // 12. Get Warehouse Orders (for Manager)
+  // =====================================================
   static Future<Map<String, dynamic>> getWarehouseOrders(
     String warehouseId,
   ) async {
@@ -304,5 +399,119 @@ class ApiService {
       print("Warehouse Orders Error: $e");
       return {"orders": [], "count": 0, "error": e.toString()};
     }
+  }
+
+  // CART CONSOLIDATION ALGORITHM
+  // Runs client-side to decide which warehouse serves each item
+
+  /// Given a cart and product source info, assign each cart item
+  /// to the optimal warehouse using the consolidation algorithm:
+  /// 1. Items only at ONE warehouse → forced assignment
+  /// 2. If forced warehouse also has other items → consolidate there
+  /// 3. Remaining items → nearest warehouse with stock
+  ///
+  /// Returns: Map<warehouseId, List<{item_id, qty, product}>>
+  static Map<String, List<Map<String, dynamic>>> optimizeCartSources({
+    required Map<String, int> cart,
+    required List<Product> products,
+  }) {
+    final Map<String, List<Map<String, dynamic>>> assignment = {};
+    final Set<String> assignedItems = {};
+
+    // Build lookup: itemId -> Product
+    final Map<String, Product> productMap = {
+      for (var p in products) p.id: p,
+    };
+
+    // Step 1: Find items available at ONLY one warehouse (forced)
+    final Set<String> forcedWarehouses = {};
+    for (var entry in cart.entries) {
+      final product = productMap[entry.key];
+      if (product == null || product.sources.isEmpty) continue;
+      if (product.sources.length == 1) {
+        forcedWarehouses.add(product.sources.first.warehouseId);
+      }
+    }
+
+    // Step 2: For each forced warehouse, grab as many items as possible
+    for (var whId in forcedWarehouses) {
+      assignment[whId] = [];
+      for (var entry in cart.entries) {
+        if (assignedItems.contains(entry.key)) continue;
+        final product = productMap[entry.key];
+        if (product == null) continue;
+
+        // Check if this warehouse has this item with enough stock
+        final source = product.sources
+            .where((s) => s.warehouseId == whId && s.stock >= entry.value)
+            .firstOrNull;
+        if (source != null) {
+          assignment[whId]!.add({
+            'item_id': entry.key,
+            'quantity': entry.value,
+            'warehouse_id': whId,
+            'product': product,
+          });
+          assignedItems.add(entry.key);
+        }
+      }
+    }
+
+    // Step 3: Remaining items → nearest warehouse that has stock
+    for (var entry in cart.entries) {
+      if (assignedItems.contains(entry.key)) continue;
+      final product = productMap[entry.key];
+      if (product == null || product.sources.isEmpty) continue;
+
+      // Sort sources by distance, pick closest with enough stock
+      final sortedSources = List<WarehouseSource>.from(product.sources)
+        ..sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
+
+      for (var source in sortedSources) {
+        if (source.stock >= entry.value) {
+          final whId = source.warehouseId;
+          assignment.putIfAbsent(whId, () => []);
+          assignment[whId]!.add({
+            'item_id': entry.key,
+            'quantity': entry.value,
+            'warehouse_id': whId,
+            'product': product,
+          });
+          assignedItems.add(entry.key);
+          break;
+        }
+      }
+    }
+
+    return assignment;
+  }
+
+  /// Calculate delivery fee based on distance
+  static double calculateDeliveryFee(double distanceKm, {bool isConsolidation = false}) {
+    double fee;
+    if (distanceKm <= 5) {
+      fee = 0; // Free under 5km
+    } else if (distanceKm <= 15) {
+      fee = 20;
+    } else if (distanceKm <= 30) {
+      fee = 35;
+    } else {
+      fee = 50;
+    }
+
+    // Consolidation discount
+    if (isConsolidation) {
+      fee = (fee - 10).clamp(0, double.infinity);
+    }
+
+    return fee;
+  }
+
+  /// Calculate ETA based on distance
+  static int calculateEta(double distanceKm) {
+    if (distanceKm <= 5) return 10;
+    if (distanceKm <= 15) return 25;
+    if (distanceKm <= 30) return 40;
+    return 60;
   }
 }

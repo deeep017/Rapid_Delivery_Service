@@ -72,6 +72,7 @@ PRODUCTS = {
     "tea": {"name": "Tata Tea 500g", "price": 250, "unit": "pack", "stock": 350},
     "coffee": {"name": "Nescafe 200g", "price": 450, "unit": "jar", "stock": 200},
     "oil": {"name": "Sunflower Oil 1L", "price": 160, "unit": "bottle", "stock": 400},
+    "banana": {"name": "Banana", "price": 50, "unit": "dozen", "stock": 100},
 }
 
 

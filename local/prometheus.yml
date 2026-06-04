@@ -1,0 +1,54 @@
+# =============================================================
+# PROMETHEUS CONFIGURATION - Rapid Delivery Service
+# =============================================================
+# Scrapes metrics from all microservices, Redis, PostgreSQL
+# =============================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # --- Availability Service (FastAPI auto + custom inventory gauges) ---
+  # Inventory stock gauges are updated by a background thread every 30s
+  - job_name: 'availability-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['availability-service:8000']
+        labels:
+          service: 'availability'
+
+  # --- Order Service (FastAPI auto + custom order counters) ---
+  - job_name: 'order-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['order-service:8001']
+        labels:
+          service: 'orders'
+
+  # --- Fulfillment Worker (prometheus_client HTTP server on port 8002) ---
+  - job_name: 'fulfillment-worker'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['fulfillment-worker:8002']
+        labels:
+          service: 'fulfillment'
+
+  # --- Redis Exporter ---
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          service: 'redis'
+
+  # --- PostgreSQL Exporter ---
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'postgres'
+
+  # --- Prometheus self-monitoring ---
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

@@ -1,6 +1,4 @@
-# =============================================================================
 # ECR Repositories - Container Registry (FREE: 500MB storage)
-# =============================================================================
 
 resource "aws_ecr_repository" "availability_repo" {
   name                 = "availability-service-local"

@@ -1,7 +1,5 @@
 """
-=============================================================
 ADD WAREHOUSE TOOL - Rapid Delivery Service (AWS Version)
-=============================================================
 Use this script to add warehouses to AWS OpenSearch and ElastiCache.
 
 USAGE:
@@ -12,7 +10,6 @@ USAGE:
 REQUIRES: Run from EC2 instance (ElastiCache is VPC-only)
   ssh -i k3s-key ubuntu@<API_SERVER_IP>
   python3 add_warehouse.py
-=============================================================
 """
 
 import sys
@@ -20,18 +17,15 @@ import json
 import requests
 import os
 
-# =====================================================
 # AWS CONFIGURATION - Auto-detect from environment
-# =====================================================
 # These are set by the K8s pods, or use defaults for EC2 shell
 OPENSEARCH_URL = os.environ.get('OPENSEARCH_URL', 'https://search-rapid-search-bu2kcyndpnpudetiv3s6raq5oa.us-east-1.es.amazonaws.com')
 REDIS_HOST = os.environ.get('REDIS_HOST', 'rapid-redis.pqqgpc.0001.use1.cache.amazonaws.com')
 REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
 AWS_REGION = os.environ.get('AWS_REGION', 'us-east-1')
 
-# =====================================================
 # AWS SigV4 Authentication for OpenSearch
-# =====================================================
+
 def get_aws_auth():
     """Get AWS SigV4 auth for OpenSearch requests"""
     try:
@@ -48,16 +42,14 @@ def get_aws_auth():
                 session_token=credentials.token
             )
     except ImportError:
-        print("⚠️  Install: pip install boto3 requests-aws4auth")
+        print("  Install: pip install boto3 requests-aws4auth")
     except Exception as e:
-        print(f"⚠️  AWS auth error: {e}")
+        print(f"  AWS auth error: {e}")
     return None
 
 AWS_AUTH = get_aws_auth()
 
-# =====================================================
 # 10 TEST WAREHOUSES - Major Indian Cities
-# =====================================================
 TEST_WAREHOUSES = [
     # Jaipur Area (for your location)
     {"id": "wh_jaipur_central", "lat": 26.9124, "lon": 75.7873, "city": "Jaipur Central"},
@@ -282,3 +274,5 @@ if __name__ == "__main__":
         print("  python add_warehouse.py list         - List all warehouses")
         print("  python add_warehouse.py add <id> <lat> <lon> [city]")
         print("  python add_warehouse.py delete <id>  - Delete a warehouse")
+
+

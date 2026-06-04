@@ -1,9 +1,6 @@
 
-
-# ===================================================================
 # INSTANCE 1: K3s MASTER + LOCAL DATABASES (Docker)
 # Runs: K3s server, PostgreSQL, Redis, OpenSearch via Docker
-# ===================================================================
 resource "aws_instance" "api_server" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = var.instance_type # t3.small for 2GB RAM
@@ -37,9 +34,7 @@ resource "aws_instance" "api_server" {
   }
 }
 
-# ===================================================================
 # INSTANCE 2: K3s WORKER (Optional - for extra compute capacity)
-# ===================================================================
 resource "aws_instance" "worker_server" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = var.worker_instance_type # t3.micro

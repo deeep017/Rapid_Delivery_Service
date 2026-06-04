@@ -36,6 +36,8 @@ fulfillment-worker     Up X minutes
 postgres               Up X minutes    0.0.0.0:5432->5432/tcp
 redis                  Up X minutes    0.0.0.0:6379->6379/tcp
 opensearch             Up X minutes    0.0.0.0:9200->9200/tcp
+rapid_prometheus       Up X minutes    0.0.0.0:9090->9090/tcp
+rapid_grafana          Up X minutes    0.0.0.0:3000->3000/tcp
 ```
 
 ### API Tests
@@ -76,6 +78,20 @@ curl -Method POST -Uri "http://localhost:8001/orders" `
 ```powershell
 curl http://localhost:8001/orders/test_user
 # Expected: Array of orders with order_id, customer_id, status, items, created_at
+```
+
+**Test 7: Multi-Warehouse Order Placement**
+```powershell
+curl -Method POST -Uri "http://localhost:8001/orders" `
+  -ContentType "application/json" `
+  -Body '{"customer_id":"multi_user","items":[{"item_id":"apple","warehouse_id":"wh_rajapark","quantity":2},{"item_id":"paneer","warehouse_id":"wh_lnmiit","quantity":1}]}'
+# Expected: Success message with "is_multi_warehouse": true and multiple "sub_orders".
+```
+
+**Test 8: Demand Prediction API**
+```powershell
+curl http://localhost:8000/metrics/demand
+# Expected: JSON with restock_needed, high_demand_items, and imbalanced_items.
 ```
 
 ### Flutter App Test
@@ -260,10 +276,12 @@ docker exec postgres psql -U postgres -c "\d orders"
 | Stock near LNMIIT | ✅ available, ~50 qty | ✅ available, ~50 qty |
 | Stock far away | ❌ not available | ❌ not available |
 | Order health | ✅ healthy | ✅ healthy |
-| Place order | ✅ success + order_id | ✅ success + order_id |
+| Place single order | ✅ success + order_id | ✅ success + order_id |
+| Multi-warehouse order | ✅ splits into sub-orders | ✅ splits into sub-orders |
 | Order history | ✅ returns orders | ✅ returns orders |
 | Flutter cart | ✅ works | ✅ works |
 | Flutter checkout | ✅ works | ✅ works |
+| Grafana Dashboard | ✅ Loads with data | ✅ Loads with data |
 
 ---
 
@@ -410,4 +428,33 @@ docker exec postgres psql -U postgres -c "\d orders"
 - `bakery` - Bread, Cake
 - `grocery` - Rice, Oil, Flour
 - `frozen` - Ice Cream
+
+---
+
+## 8️⃣ MONITORING & OBSERVABILITY TESTING
+
+### Prometheus Metrics
+```powershell
+# Open in browser:
+http://localhost:9090
+
+# Query to test:
+inventory_stock_level
+```
+*Expected: List of current stock levels for each item in each warehouse, updating every 30 seconds.*
+
+### Grafana Dashboards
+```powershell
+# Open in browser:
+http://localhost:3000
+
+# Login credentials:
+Username: admin
+Password: rapid123 (or value of GRAFANA_PASSWORD)
+```
+*Expected Flow:*
+1. Navigate to "Dashboards" > "Rapid Delivery Service".
+2. Verify all 17 panels load without errors.
+3. Check "Business Overview" for total orders.
+4. Check "Warehouse Inventory" heatmap.
 

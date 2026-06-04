@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+// ignore: unused_import
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import 'buyer/buyer_home_screen.dart';
@@ -247,6 +248,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                                     );
 
                                 if (manager != null) {
+                                  // ignore: use_build_context_synchronously
                                   Navigator.pop(ctx);
                                   setState(() {
                                     _userName = manager.name;

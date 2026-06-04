@@ -1,9 +1,13 @@
 __pycache__/
 *.pyc
 .env
+.env.local
 .terraform/
 terraform.tfstate*
 node_modules/
 .idea/
 .vscode/
 .DS_Store
+.venv/
+*.tfstate
+*.tfstate.backup

@@ -1,8 +1,6 @@
 #!/bin/bash
-# =============================================================================
 # Seed Local OpenSearch with Warehouse Data
 # Run this AFTER the EC2 instance is fully initialized
-# =============================================================================
 
 set -e
 
@@ -95,6 +93,6 @@ curl -X POST "http://localhost:9200/warehouses/_doc/5" -H 'Content-Type: applica
 echo ""
 echo "=========================================="
 echo "✅ OpenSearch seeded successfully!"
-echo "=========================================="
+echo "========================================"
 echo ""
 echo "Verify with: curl http://localhost:9200/warehouses/_search?pretty"
