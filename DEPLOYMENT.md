@@ -211,6 +211,60 @@ sudo tail -f /var/log/cloud-init-output.log
 
 ---
 
+## 🎓 GitHub Student Developer Pack Deployment
+
+To host this project online and reduce your costs to zero using the **GitHub Student Developer Pack**, you can leverage the cloud credits and free tools it provides.
+
+### 🎁 What the Pack Offers for This Project
+
+1. **DigitalOcean**: $200 in platform credit for 1 year. This is the **best option** for hosting your Dockerized backend stack (Postgres, Redis, OpenSearch, and API services) on a single Virtual Machine (Droplet) without worrying about strict free-tier resource limits.
+2. **Microsoft Azure**: $100 in credit plus free access to select services.
+3. **Heroku**: $13/month in credits for 12 months.
+4. **Namecheap / Name.com**: Free 1-year domain registration (e.g., `.me`, `.tech`, `.live`).
+5. **Frontend Hosting**: Tools like **GitHub Pages**, **Vercel**, or **Netlify** offer generous free tiers for hosting your built Flutter Web app.
+
+### 🚀 Step-by-Step Guide (using DigitalOcean)
+
+Since the project relies heavily on Docker Compose, deploying onto a DigitalOcean Virtual Machine using the $200 credit is the most straightforward path.
+
+#### Step 1: Claim Your Pack & Free Domain
+1. Go to [education.github.com/pack](https://education.github.com/pack) and verify your student status.
+2. Claim your **DigitalOcean $200 credit**.
+3. Claim a free domain via **Namecheap** or **Name.com** from the pack dashboard.
+
+#### Step 2: Set Up the DigitalOcean Server (Backend)
+1. Log into DigitalOcean and create a new **Droplet** (Ubuntu 22.04 or 24.04).
+2. Choose a Droplet size with at least **4GB RAM** (around $24/month). *Your $200 credit easily covers this cost for over 8 months, giving you a powerful zero-cost server.*
+3. SSH into your new Droplet:
+   `ssh root@<YOUR_DROPLET_IP>`
+4. Install Docker and Docker Compose on the Droplet.
+5. Clone your repository:
+   `git clone https://github.com/deeep017/Rapid_Delivery_Service.git`
+6. Navigate to the project directory and start the stack:
+   ```bash
+   cd Rapid_Delivery_Service/local
+   docker-compose -f docker-compose-local.yaml up -d --build
+   ```
+7. Seed the database on the server:
+   `python3 seed_local.py`
+8. Check that your APIs are running by making a test request to `http://<YOUR_DROPLET_IP>:8000` and `8001`.
+
+#### Step 3: Host the Frontend (Flutter Web app)
+1. On your local machine, navigate to the `rapid_delivery_app` directory.
+2. Update the API base URLs in your Flutter codebase to point to your new DigitalOcean Droplet IP (or your new domain).
+3. Build the web app for production:
+   `flutter build web`
+4. The compiled frontend will be in the `build/web` folder.
+5. Deploy this folder for **free** using GitHub Pages, Vercel, or Netlify. For example, using the Netlify CLI:
+   `npx netlify deploy --dir=build/web --prod`
+
+#### Step 4: Link Your Free Domain & Secure with SSL
+1. Go to your domain provider (Namecheap/Name.com).
+2. Create an `A Record` for a subdomain (e.g., `api.yourdomain.me`) pointing to your DigitalOcean Droplet IP, and link the root domain to your Netlify/Vercel frontend.
+3. On your Droplet, use **Certbot (Let's Encrypt)** (completely free) to generate an SSL certificate and configure Nginx as a reverse proxy (`apt install nginx certbot python3-certbot-nginx`). This ensures your Flutter app can make secure HTTPS requests to your backend without encountering Mixed Content or CORS errors.
+
+---
+
 ## 💰 AWS Costs
 
 ### Free Tier (12 months)
