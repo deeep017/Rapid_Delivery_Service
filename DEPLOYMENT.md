@@ -251,8 +251,14 @@ Since the project relies heavily on Docker Compose, deploying onto a DigitalOcea
 
 #### Step 3: Host the Frontend (Flutter Web app)
 1. On your local machine, navigate to the `rapid_delivery_app` directory.
-2. Update the API base URLs in your Flutter codebase to point to your new DigitalOcean Droplet IP (or your new domain).
-3. Build the web app for production:
+2. Build with your domain-backed API URLs (no manual Dart edits needed):
+   ```bash
+   flutter build web \
+     --dart-define=USE_AWS_BACKEND=true \
+     --dart-define=AVAILABILITY_BASE_URL=https://api.yourdomain.com \
+     --dart-define=ORDER_BASE_URL=https://api.yourdomain.com/order
+   ```
+3. If you prefer default local endpoints, you can still build with:
    `flutter build web`
 4. The compiled frontend will be in the `build/web` folder.
 5. Deploy this folder for **free** using GitHub Pages, Vercel, or Netlify. For example, using the Netlify CLI:
@@ -260,8 +266,23 @@ Since the project relies heavily on Docker Compose, deploying onto a DigitalOcea
 
 #### Step 4: Link Your Free Domain & Secure with SSL
 1. Go to your domain provider (Namecheap/Name.com).
-2. Create an `A Record` for a subdomain (e.g., `api.yourdomain.me`) pointing to your DigitalOcean Droplet IP, and link the root domain to your Netlify/Vercel frontend.
-3. On your Droplet, use **Certbot (Let's Encrypt)** (completely free) to generate an SSL certificate and configure Nginx as a reverse proxy (`apt install nginx certbot python3-certbot-nginx`). This ensures your Flutter app can make secure HTTPS requests to your backend without encountering Mixed Content or CORS errors.
+2. Create DNS records:
+   - `A` record: `api` → `<YOUR_DROPLET_IP>`
+   - `A` record or `CNAME` for root domain (`@`) → your frontend host target
+3. On your backend server, install Nginx + Certbot:
+   ```bash
+   sudo apt update
+   sudo apt install -y nginx certbot python3-certbot-nginx
+   ```
+4. Configure Nginx reverse proxy for `api.yourdomain.com` and route:
+   - `/availability/*` → `localhost:8000`
+   - `/order/*` → `localhost:8001`
+   - You can reuse the routing pattern already present in `terraform-files/user_data_api.sh`.
+5. Enable HTTPS:
+   ```bash
+   sudo certbot --nginx -d api.yourdomain.com
+   ```
+6. In your frontend hosting provider (Netlify/Vercel/GitHub Pages), attach `yourdomain.com` as the custom domain.
 
 ---
 

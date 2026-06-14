@@ -9,9 +9,12 @@ class ApiService {
   // CONFIGURATION
   // =====================================================
 
-  /// Set to TRUE when deploying to AWS
-  /// Set to FALSE for local Docker testing
-  static const bool useAwsBackend = false;
+  /// Set to TRUE when deploying remote backend (AWS/DigitalOcean/custom domain)
+  /// Keep FALSE for local Docker testing
+  static const bool useAwsBackend = bool.fromEnvironment(
+    'USE_AWS_BACKEND',
+    defaultValue: false,
+  );
 
   // =====================================================
   // BASE URLs - Automatically switches between AWS/Local
