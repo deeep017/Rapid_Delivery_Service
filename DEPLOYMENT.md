@@ -234,7 +234,7 @@ Since the project relies heavily on Docker Compose, deploying onto a DigitalOcea
 
 #### Step 2: Set Up the DigitalOcean Server (Backend)
 1. Log into DigitalOcean and create a new **Droplet** (Ubuntu 22.04 or 24.04).
-2. Choose a Droplet size with at least **4GB RAM** (around $24/month). *Your $200 credit easily covers this cost for over 8 months, giving you a powerful zero-cost server.*
+2. Choose a Droplet size with at least **4GB RAM** (around $24/month). *Your $200 credit can cover roughly 8+ months at this base rate; monitor bandwidth, backups, and snapshots to avoid extra charges.*
 3. SSH into your new Droplet:
    `ssh root@<YOUR_DROPLET_IP>`
 4. Install Docker and Docker Compose on the Droplet.
@@ -277,7 +277,27 @@ Since the project relies heavily on Docker Compose, deploying onto a DigitalOcea
 4. Configure Nginx reverse proxy for `api.yourdomain.com` and route:
    - `/availability/*` → `localhost:8000`
    - `/order/*` → `localhost:8001`
-   - You can reuse the routing pattern already present in `terraform-files/user_data_api.sh`.
+   - Minimal Nginx server block:
+   ```nginx
+   server {
+     listen 80;
+     server_name api.yourdomain.com;
+
+     location /availability/ {
+       rewrite ^/availability/(.*)$ /$1 break;
+       proxy_pass http://127.0.0.1:8000;
+     }
+
+     location /order/ {
+       rewrite ^/order/(.*)$ /$1 break;
+       proxy_pass http://127.0.0.1:8001;
+     }
+
+     location / {
+       proxy_pass http://127.0.0.1:8000;
+     }
+   }
+   ```
 5. Enable HTTPS:
    ```bash
    sudo certbot --nginx -d api.yourdomain.com
