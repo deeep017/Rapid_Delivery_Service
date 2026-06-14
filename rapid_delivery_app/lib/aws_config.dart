@@ -22,12 +22,12 @@ class AwsConfig {
   /// Environment indicator
   static const String environment = String.fromEnvironment(
     'APP_ENV',
-    defaultValue: 'production',
+    defaultValue: 'local',
   );
 
   /// Is production flag
   static const bool isProduction = bool.fromEnvironment(
     'APP_IS_PRODUCTION',
-    defaultValue: true,
+    defaultValue: false,
   );
 }

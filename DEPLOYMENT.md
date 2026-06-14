@@ -234,7 +234,7 @@ Since the project relies heavily on Docker Compose, deploying onto a DigitalOcea
 
 #### Step 2: Set Up the DigitalOcean Server (Backend)
 1. Log into DigitalOcean and create a new **Droplet** (Ubuntu 22.04 or 24.04).
-2. Choose a Droplet size with at least **4GB RAM** (around $24/month). *At base rate, $200/$24 is ~8.3 months; actual duration can be lower with bandwidth, backups, and snapshots, so monitor billing regularly.*
+2. Choose a Droplet size with at least **4GB RAM** (around $24/month). *At base rate, this is about 8 months on a $200 credit; actual duration can be lower with bandwidth, backups, and snapshots, so monitor billing regularly.*
 3. SSH into your new Droplet:
    `ssh root@<YOUR_DROPLET_IP>`
 4. Install Docker and Docker Compose on the Droplet.
@@ -258,6 +258,7 @@ Since the project relies heavily on Docker Compose, deploying onto a DigitalOcea
      --dart-define=AVAILABILITY_BASE_URL=https://api.yourdomain.com \
      --dart-define=ORDER_BASE_URL=https://api.yourdomain.com/order
    ```
+   `AVAILABILITY_BASE_URL` should be the API root origin (no `/availability` suffix).
 3. If you prefer default local endpoints, you can still build with:
    `flutter build web`
 4. The compiled frontend will be in the `build/web` folder.
