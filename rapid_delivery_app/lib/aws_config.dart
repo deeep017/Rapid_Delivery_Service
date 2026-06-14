@@ -13,7 +13,7 @@ class AwsConfig {
     defaultValue: 'http://localhost:8000',
   );
 
-  /// Order service base URL (keeps /order prefix for reverse-proxy routing)
+  /// Order service base URL (must include `/order` prefix for reverse-proxy routing)
   static const String orderUrl = String.fromEnvironment(
     'ORDER_BASE_URL',
     defaultValue: 'http://localhost:8001',
