@@ -10,13 +10,13 @@ class AwsConfig {
   /// Availability base URL used by buyer + manager APIs
   static const String availabilityUrl = String.fromEnvironment(
     'AVAILABILITY_BASE_URL',
-    defaultValue: 'https://REPLACE-WITH-YOUR-API-DOMAIN.com',
+    defaultValue: 'http://localhost:8000',
   );
 
   /// Order service base URL (keeps /order prefix for reverse-proxy routing)
   static const String orderUrl = String.fromEnvironment(
     'ORDER_BASE_URL',
-    defaultValue: 'https://REPLACE-WITH-YOUR-API-DOMAIN.com/order',
+    defaultValue: 'http://localhost:8001',
   );
 
   /// Environment indicator

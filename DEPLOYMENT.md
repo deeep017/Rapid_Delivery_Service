@@ -234,7 +234,7 @@ Since the project relies heavily on Docker Compose, deploying onto a DigitalOcea
 
 #### Step 2: Set Up the DigitalOcean Server (Backend)
 1. Log into DigitalOcean and create a new **Droplet** (Ubuntu 22.04 or 24.04).
-2. Choose a Droplet size with at least **4GB RAM** (around $24/month). *Your $200 credit can cover roughly 8+ months at this base rate; monitor bandwidth, backups, and snapshots to avoid extra charges.*
+2. Choose a Droplet size with at least **4GB RAM** (around $24/month). *At base rate, $200/$24 is ~8.3 months; actual duration can be lower with bandwidth, backups, and snapshots, so monitor billing regularly.*
 3. SSH into your new Droplet:
    `ssh root@<YOUR_DROPLET_IP>`
 4. Install Docker and Docker Compose on the Droplet.
