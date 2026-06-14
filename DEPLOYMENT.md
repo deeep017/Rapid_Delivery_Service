@@ -234,12 +234,12 @@ Since the project relies heavily on Docker Compose, deploying onto a DigitalOcea
 
 #### Step 2: Set Up the DigitalOcean Server (Backend)
 1. Log into DigitalOcean and create a new **Droplet** (Ubuntu 22.04 or 24.04).
-2. Choose a Droplet size with at least **4GB RAM** (around $24/month). *At base rate, this is approximately 8.3 months (~8 months) on a $200 credit; actual duration can be lower with bandwidth, backups, and snapshots, so monitor billing regularly.*
+2. Choose a Droplet size with at least **4GB RAM** (around $24/month). *At base rate, this is approximately 8.3 months on a $200 credit (theoretical maximum); actual duration can be lower with bandwidth, backups, and snapshots, so monitor billing regularly.*
 3. SSH into your new Droplet:
    `ssh root@<YOUR_DROPLET_IP>`
 4. Install Docker and Docker Compose on the Droplet.
 5. Clone your repository:
-   `git clone https://github.com/deeep017/Rapid_Delivery_Service.git`
+   `git clone https://github.com/YOUR_USERNAME/Rapid_Delivery_Service.git`
 6. Navigate to the project directory and start the stack:
    ```bash
    cd Rapid_Delivery_Service/local
@@ -287,15 +287,18 @@ Since the project relies heavily on Docker Compose, deploying onto a DigitalOcea
      server_name api.yourdomain.com;
 
      location /availability/ {
+       # Strip /availability prefix before forwarding to service root
        rewrite ^/availability/(.*)$ /$1 break;
        proxy_pass http://127.0.0.1:8000;
      }
 
      location /order/ {
+       # Strip /order prefix before forwarding to order service root
        rewrite ^/order/(.*)$ /$1 break;
        proxy_pass http://127.0.0.1:8001;
      }
 
+     # Optional default route; remove this block if you prefer strict 404 on unmatched paths
      location / {
        proxy_pass http://127.0.0.1:8000;
      }
