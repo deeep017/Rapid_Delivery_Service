@@ -259,8 +259,8 @@ Since the project relies heavily on Docker Compose, deploying onto a DigitalOcea
      --dart-define=ORDER_BASE_URL=https://api.yourdomain.com/order
    ```
    - `AVAILABILITY_BASE_URL` should be the API root origin (no `/availability` suffix).
-   - `ORDER_BASE_URL` must include `/order` (the app appends endpoints like `/orders` to this base).
-   - App routing behavior: availability calls become `https://api.yourdomain.com/availability/...`; order calls become `https://api.yourdomain.com/order/...`.
+   - `ORDER_BASE_URL` should include `/order` when using reverse proxy (for direct service access you can use host:port, e.g. `http://localhost:8001`).
+   - App routing behavior: availability calls become `https://api.yourdomain.com/availability/...`; order calls become `https://api.yourdomain.com/order/orders` and Nginx strips `/order` before forwarding to the order service.
 3. If you prefer default local endpoints, you can still build with:
    `flutter build web`
 4. The compiled frontend will be in the `build/web` folder.

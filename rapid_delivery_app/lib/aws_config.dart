@@ -13,7 +13,9 @@ class AwsConfig {
     defaultValue: 'http://localhost:8000',
   );
 
-  /// Order service base URL (must include `/order` prefix for reverse-proxy routing)
+  /// Order service base URL.
+  /// For reverse-proxy setups use `/order` prefix (e.g. https://api.example.com/order).
+  /// For direct service access use host:port only (e.g. http://localhost:8001).
   static const String orderUrl = String.fromEnvironment(
     'ORDER_BASE_URL',
     defaultValue: 'http://localhost:8001',
